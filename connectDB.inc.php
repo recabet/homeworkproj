@@ -1,91 +1,47 @@
 <?php
+session_start();
 
-ini_set('display_errors', 1);
-include("connectDB.inc.php");
+class Database {
+    private static ?Database $instance = null;
+    private const PARAM_HOST = "mysql-recabet.alwaysdata.net";
+    private const PARAM_DB = "recabet_hwp";
+    private const PARAM_USER = "recabet";
+    private const PARAM_PASSWD = "Receb.2005";
+    private const PARAM_PORT = 3306;
+    private PDO $pdo;
 
-if (session_status() == PHP_SESSION_NONE) {
-    session_start();
-}
+    private function __construct() {
+        $dsn = 'mysql:host=' . self::PARAM_HOST . ';port=' . self::PARAM_PORT . ';dbname=' . self::PARAM_DB;
+        $options = [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false,
+            PDO::ATTR_TIMEOUT => 10,
+        ];
 
-$db = Database::getInstance();
-$pdo = $db->getConnection();
+        try {
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $code = $_POST['code'] ?? null;
-
-    if (!$code || !isset($_SESSION['code'][$code])) {
-        exit("Invalid or expired code.");
+            $this->pdo = new PDO($dsn, self::PARAM_USER, self::PARAM_PASSWD, $options);
+            $this->pdo->exec("SET NAMES 'utf8'");
+        } catch (PDOException $ex) {
+            error_log("Error: " . $ex->getMessage() . " Code: " . $ex->getCode(), 3, "/var/log/php-errors.log");
+            exit("Database connection error. Please try again later.");
+        }
     }
 
-    $experience_id = $_SESSION['code'][$code];
-    $startTime = $_POST['startTime'] ?? '';
-    $endTime = $_POST['endTime'] ?? '';
-    $distance = $_POST['distance'] ?? 0;
-    $weather_id = $_POST['weather_id'] ?? 0;
-    $road_id = $_POST['road_id'] ?? 0;
-    $traffic_id = $_POST['traffic_id'] ?? 0;
-    $maneuvers = $_POST['maneuvers'] ?? [];
+    private function __clone() {}
 
-    try {
-        $pdo->beginTransaction();
-
-        if ($experience_id == 0) {
-            $stmt = $pdo->prepare("
-                INSERT INTO Driving_Experience (start_time, end_time, distance, weather_id, road_id, traffic_id)
-                VALUES (:start_time, :end_time, :distance, :weather_id, :road_id, :traffic_id)
-            ");
-            $stmt->execute([
-                ':start_time' => $startTime,
-                ':end_time' => $endTime,
-                ':distance' => $distance,
-                ':weather_id' => $weather_id,
-                ':road_id' => $road_id,
-                ':traffic_id' => $traffic_id
-            ]);
-
-            $experience_id = $pdo->lastInsertId();
-        } else {
-            $stmt = $pdo->prepare("
-                UPDATE Driving_Experience
-                SET start_time = :start_time, end_time = :end_time, distance = :distance, 
-                    weather_id = :weather_id, road_id = :road_id, traffic_id = :traffic_id
-                WHERE experience_id = :experience_id
-            ");
-            $stmt->execute([
-                ':start_time' => $startTime,
-                ':end_time' => $endTime,
-                ':distance' => $distance,
-                ':weather_id' => $weather_id,
-                ':road_id' => $road_id,
-                ':traffic_id' => $traffic_id,
-                ':experience_id' => $experience_id
-            ]);
+    public static function getInstance(): ?Database
+    {
+        if (self::$instance === null) {
+            self::$instance = new self();
         }
-
-        $pdo->prepare("DELETE FROM Driving_Experience WHERE experience_id = :experience_id")
-            ->execute([':experience_id' => $experience_id]);
-
-        if (!empty($maneuvers)) {
-            $maneuverStmt = $pdo->prepare("
-                INSERT INTO DrivingExperience_Maneuvers (experience_id, maneuver_id)
-                VALUES (:experience_id, :maneuver_id)
-            ");
-
-            foreach ($maneuvers as $maneuver_id) {
-                $maneuverStmt->execute([
-                    ':experience_id' => $experience_id,
-                    ':maneuver_id' => $maneuver_id
-                ]);
-            }
-        }
-
-        $pdo->commit();
-
-        header("Location: success.php");
-        exit;
-    } catch (Exception $e) {
-        $pdo->rollBack();
-        exit("An error occurred: " . $e->getMessage());
+        return self::$instance;
     }
-}
 
+    public function getConnection(): PDO
+    {
+        return $this->pdo;
+    }
+
+}
