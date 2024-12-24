@@ -74,20 +74,20 @@ if ($mode === 'edit' && $experience_id != 0) {
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-image: url('initial.jpg'); /* Set the background image */
-            background-size: cover; /* Make the image cover the entire body */
-            background-position: center; /* Center the image */
-            background-repeat: no-repeat; /* Prevent the image from repeating */
+            background-image: url('initial.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
             margin: 0;
             padding: 0;
-            height: 100vh; /* Ensure the body takes full height */
+            height: 100vh;
         }
 
         .form-container {
             max-width: 900px;
             margin: 50px auto;
             padding: 30px;
-            background-color: rgba(255, 255, 255, 0.8); /* Set background to semi-transparent white */
+            background-color: rgba(255, 255, 255, 0.8);
             border-radius: 10px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         }
@@ -239,7 +239,6 @@ if ($mode === 'edit' && $experience_id != 0) {
 
 <script>
     $(document).ready(function() {
-        // Initialize Select2 for multiple selects
         $('select[multiple="multiple"]').select2({
             placeholder: "Select maneuvers"
         });
